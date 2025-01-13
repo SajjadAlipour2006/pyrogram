@@ -113,7 +113,7 @@ class TCP:
         )
 
     async def _connect(self, destination: Tuple[str, int]) -> None:
-        if self.proxy:
+        if self.proxy and self.proxy.get("scheme").lower() != "mtproxy":
             await self._connect_via_proxy(destination)
         else:
             await self._connect_via_direct(destination)
