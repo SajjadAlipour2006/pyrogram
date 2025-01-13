@@ -118,6 +118,14 @@ class Session:
 
                 await self.send(raw.functions.Ping(ping_id=0), timeout=self.START_TIMEOUT)
 
+                if self.connection.proxy and self.connection.proxy.get("scheme").lower() == "mtproxy":
+                    proxy = raw.types.InputClientProxy(
+                        self.connection.proxy.get("hostname"),
+                        self.connection.proxy.get("port"),
+                    )
+                else:
+                    proxy = None
+
                 if not self.is_cdn:
                     await self.send(
                         raw.functions.InvokeWithLayer(
@@ -131,6 +139,7 @@ class Session:
                                 lang_pack=self.client.lang_pack,
                                 lang_code=self.client.lang_code,
                                 query=raw.functions.help.GetConfig(),
+                                proxy=proxy,
                                 params=self.client.init_connection_params,
                             )
                         ),
