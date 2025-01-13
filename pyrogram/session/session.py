@@ -120,8 +120,8 @@ class Session:
 
                 if self.connection.proxy and self.connection.proxy.get("scheme").lower() == "mtproxy":
                     proxy = raw.types.InputClientProxy(
-                        self.connection.proxy.get("hostname"),
-                        self.connection.proxy.get("port"),
+                        address=self.connection.proxy.get("hostname"),
+                        port=self.connection.proxy.get("port"),
                     )
                 else:
                     proxy = None
