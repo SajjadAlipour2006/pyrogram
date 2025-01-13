@@ -118,7 +118,7 @@ class Session:
 
                 await self.send(raw.functions.Ping(ping_id=0), timeout=self.START_TIMEOUT)
 
-                if self.connection.proxy and self.connection.proxy.get("scheme").lower() == "mtproxy":
+                if self.connection.proxy and not self.connection.proxy.get("scheme"):
                     proxy = raw.types.InputClientProxy(
                         address=self.connection.proxy.get("hostname"),
                         port=self.connection.proxy.get("port"),
