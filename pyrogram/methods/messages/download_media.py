@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Union, Optional, Callable, BinaryIO, List
 
 import pyrogram
-from pyrogram import types
+from pyrogram import types, utils
 from pyrogram.file_id import FileId, FileType, PHOTO_TYPES
 
 DEFAULT_DOWNLOAD_DIR = "downloads/"
@@ -43,7 +43,10 @@ class DownloadMedia:
             "types.Video",
             "types.Voice",
             "types.VideoNote",
-            "types.PaidMediaInfo"
+            "types.PaidMediaInfo",
+            "types.Thumbnail",
+            "types.StrippedThumbnail",
+            "types.PaidMediaPreview"
         ],
         file_name: str = DEFAULT_DOWNLOAD_DIR,
         in_memory: bool = False,
@@ -56,7 +59,7 @@ class DownloadMedia:
         .. include:: /_includes/usable-by/users-bots.rst
 
         Parameters:
-            message (``str`` | :obj:`~pyrogram.types.Message` | :obj:`~pyrogram.types.Story` | :obj:`~pyrogram.types.Audio` | :obj:`~pyrogram.types.Document` | :obj:`~pyrogram.types.Photo` | :obj:`~pyrogram.types.Sticker` | :obj:`~pyrogram.types.Animation` | :obj:`~pyrogram.types.Video` | :obj:`~pyrogram.types.Voice` | :obj:`~pyrogram.types.VideoNote` | :obj:`~pyrogram.types.PaidMediaInfo`):
+            message (``str`` | :obj:`~pyrogram.types.Message` | :obj:`~pyrogram.types.Story` | :obj:`~pyrogram.types.Audio` | :obj:`~pyrogram.types.Document` | :obj:`~pyrogram.types.Photo` | :obj:`~pyrogram.types.Sticker` | :obj:`~pyrogram.types.Animation` | :obj:`~pyrogram.types.Video` | :obj:`~pyrogram.types.Voice` | :obj:`~pyrogram.types.VideoNote` | :obj:`~pyrogram.types.PaidMediaInfo` | :obj:`~pyrogram.types.Thumbnail` | :obj:`~pyrogram.types.StrippedThumbnail` | :obj:`~pyrogram.types.PaidMediaPreview`):
                 Pass a object containing the media, the media itself (message.audio, message.video, ...) or a file id
                 as string.
 
@@ -160,11 +163,16 @@ class DownloadMedia:
                             progress=progress,
                             progress_args=progress_args,
                         )
-                        results.append(result)
 
-                    return results
+                        if result:
+                            results.append(result)
 
-                if not (self.me and self.me.is_bot) and story:
+                    return results or None
+
+                if story:
+                    if self.me and self.me.is_bot:
+                        raise ValueError("Bots can't see and download stories")
+
                     media = getattr(story, kind, None)
                 else:
                     media = getattr(message, kind, None)
@@ -176,22 +184,47 @@ class DownloadMedia:
                 raise ValueError("Bots can't see and download stories")
 
             media = getattr(message, message.media.value, None)
-        if isinstance(message, types.PaidMediaInfo):
-            if not isinstance(message.media[0], types.PaidMediaPreview):
-                results = []
+        elif isinstance(message, types.PaidMediaInfo) and not isinstance(message.media[0], types.PaidMediaPreview):
+            results = []
 
-                for item in message.media:
-                    result = await self.download_media(
-                        item,
-                        file_name=file_name,
-                        in_memory=in_memory,
-                        block=block,
-                        progress=progress,
-                        progress_args=progress_args,
-                    )
+            for item in message.media:
+                result = await self.download_media(
+                    item,
+                    file_name=file_name,
+                    in_memory=in_memory,
+                    block=block,
+                    progress=progress,
+                    progress_args=progress_args,
+                )
+
+                if result:
                     results.append(result)
 
-                return results
+            return results or None
+        elif isinstance(message, (types.StrippedThumbnail, types.PaidMediaPreview)):
+            data = message.data if isinstance(message, types.StrippedThumbnail) else message.thumbnail.data
+
+            thumb = utils.from_inline_bytes(
+                utils.expand_inline_bytes(
+                    data
+                )
+            )
+
+            if in_memory:
+                return thumb
+
+            directory, file_name = os.path.split(file_name)
+            file_name = file_name or thumb.name
+
+            if not os.path.isabs(file_name):
+                directory = self.PARENT_DIR / (directory or DEFAULT_DOWNLOAD_DIR)
+
+            os.makedirs(directory, exist_ok=True) if not in_memory else None
+
+            with open(os.path.join(directory, file_name), "wb") as file:
+                file.write(thumb.getbuffer())
+
+            return os.path.join(directory, file_name)
         elif isinstance(message, str):
             media = message
         elif hasattr(message, "file_id"):
