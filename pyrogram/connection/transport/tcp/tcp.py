@@ -35,9 +35,10 @@ proxy_type_by_scheme: Dict[str, int] = {
 
 
 class Proxy(TypedDict):
-    scheme: str
+    scheme: Optional[str]
     hostname: str
     port: int
+    secret: Optional[str]
     username: Optional[str]
     password: Optional[str]
 
