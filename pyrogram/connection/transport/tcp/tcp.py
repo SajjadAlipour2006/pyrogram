@@ -46,8 +46,9 @@ class Proxy(TypedDict):
 class TCP:
     TIMEOUT = 10
 
-    def __init__(self, ipv6: bool, proxy: Proxy) -> None:
+    def __init__(self, ipv6: bool, dc_id: int, proxy: Proxy) -> None:
         self.ipv6 = ipv6
+        self.dc_id = dc_id  # Needed for MTProxy
         self.proxy = proxy
 
         self.reader: Optional[asyncio.StreamReader] = None

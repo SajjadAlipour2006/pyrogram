@@ -40,10 +40,9 @@ class TCPMTProxy(TCP):
 
         return secret_bytes[:16]
 
-    def __init__(self, ipv6: bool, proxy: Proxy, dc_id: int) -> None:
-        self.dc_id = dc_id
+    def __init__(self, ipv6: bool, dc_id: int, proxy: Proxy) -> None:
         self.secret = self.normalize_secret(proxy["secret"])
-        super().__init__(ipv6, proxy)
+        super().__init__(ipv6, dc_id, proxy)
 
     async def connect(self, address: Tuple[str, int]) -> None:
         # Connect to the proxy's host and port instead of telegram's

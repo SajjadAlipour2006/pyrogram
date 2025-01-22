@@ -50,7 +50,7 @@ class Connection:
 
     async def connect(self) -> None:
         for i in range(Connection.MAX_CONNECTION_ATTEMPTS):
-            self.protocol = self.protocol_factory(ipv6=self.ipv6, proxy=self.proxy)
+            self.protocol = self.protocol_factory(ipv6=self.ipv6, dc_id=self.dc_id, proxy=self.proxy)
 
             try:
                 log.info("Connecting...")
